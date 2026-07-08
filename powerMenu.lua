@@ -125,6 +125,14 @@ local function draw()
     }
   })
 
+  canvas:level(hs.canvas.windowLevels.popUpMenu)
+
+    canvas:behavior({
+    hs.canvas.windowBehaviors.canJoinAllSpaces,
+    hs.canvas.windowBehaviors.fullScreenAuxiliary,
+    hs.canvas.windowBehaviors.stationary,
+})
+
   canvas:show()
 end
 
