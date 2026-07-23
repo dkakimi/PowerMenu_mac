@@ -1,1 +1,2 @@
 require("powerMenu")
+require("teamSpiritReminder")
