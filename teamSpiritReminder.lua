@@ -20,7 +20,7 @@ local SAVE_FILE =
 
 -- ダイアログ本体のサイズ(折りたたみ時 / 詳細展開時)
 local DIALOG_W          = 560
-local DIALOG_H_COLLAPSED = 230
+local DIALOG_H_COLLAPSED = 175
 local DIALOG_H_EXPANDED  = 380
 
 -----------------------------------------------------------------------
@@ -296,7 +296,7 @@ local function render()
         textSize = 12,
         textColor = { white = 0.1 },
         textFont = "Hiragino Sans",
-        frame = { x = dialogX + 80, y = dialogY + 36, w = DIALOG_W - 100, h = 90 },
+        frame = { x = dialogX + 80, y = dialogY + 36, w = DIALOG_W - 100, h = 62 },
     })
 
     -------------------------------------------------------------------
@@ -307,7 +307,7 @@ local function render()
         type = "rectangle",
         action = "fill",
         fillColor = { white = 0.6, alpha = 1 },
-        frame = { x = dialogX + 10, y = dialogY + dialogH - 68, w = DIALOG_W - 20, h = 1 },
+        frame = { x = dialogX + 10, y = dialogY + dialogH - 71, w = DIALOG_W - 20, h = 1 },
     })
 
     -------------------------------------------------------------------
@@ -320,7 +320,7 @@ local function render()
         textSize = 12,
         textColor = { white = 0.1 },
         textFont = "Hiragino Sans",
-        frame = { x = dialogX + 10, y = dialogY + dialogH - 60, w = DIALOG_W - 20, h = 20 },
+        frame = { x = dialogX + 10, y = dialogY + dialogH - 65, w = DIALOG_W - 20, h = 20 },
     })
 
     -------------------------------------------------------------------
@@ -422,7 +422,7 @@ local function render()
                 "System.IndexOutOfRangeException: TeamSpiritに本日まだ打刻していません。\n" ..
                 "   場所 TeamSpiritReminder.Check.今日の予定() 行 22\n" ..
                 "   場所 TeamSpiritReminder.Main.Start() 行 7\n\n" ..
-                "対処方法: [出勤する]または[打刻する]を押してTeamSpiritを開いてください。",
+                "対処方法: [続行]または[終了]を押してTeamSpiritを開いてください。",
             textSize = 10,
             textColor = { white = 0.15 },
             textFont = "Menlo",
