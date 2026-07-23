@@ -291,7 +291,7 @@ local function render()
         type = "text",
         text =
             "アプリケーションのコンポーネントで、本日の出勤打刻が行われていないこと" ..
-            "を検知しました。[続行]をクリックすると、TeamSpiritを起動し出勤打刻を行" ..
+            "を検知しました。[出勤]または[打刻]をクリックすると、TeamSpiritを起動し出勤打刻を行" ..
             "います。打刻が完了するまで、この画面は繰り返し表示されます。",
         textSize = 12,
         textColor = { white = 0.1 },
@@ -362,7 +362,7 @@ local function render()
 
     table.insert(elements, {
         type = "text",
-        text = "出勤する(C)",
+        text = "出勤 (C)",
         textSize = 12,
         textColor = { white = 0.05 },
         textAlignment = "center",
@@ -393,7 +393,7 @@ local function render()
 
     table.insert(elements, {
         type = "text",
-        text = "打刻する(O)",
+        text = "打刻 (O)",
         textSize = 12,
         textColor = { white = 0.05 },
         textAlignment = "center",
