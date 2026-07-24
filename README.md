@@ -153,7 +153,7 @@ require("teamSpiritReminder")
 
 ## 5. 設定を反映させる(リロード)
 
-1. メニューバーの Hammerspoon アイコン(🏔️)をクリックします
+1. メニューバーの Hammerspoon アイコンをクリックします
 2. **「Reload Config」** をクリックします
 
    > 💡 「設定ファイルを読み直してね」というボタンです。

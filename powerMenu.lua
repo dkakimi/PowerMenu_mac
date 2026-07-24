@@ -325,8 +325,10 @@ local function performShutdown()
   hs.execute([[osascript -e 'tell application "System Events" to shut down']])
 end
 
--- 既定ブラウザでTeamSpiritを開く（確認画面は閉じない）
+-- 既定ブラウザでTeamSpiritを開く（選択したら確認画面は閉じる）
 local function openTeamSpirit()
+  hideShutdownConfirm()
+  shutdownConfirmMode:exit()
   hs.urlevent.openURL(TEAMSPIRIT_URL)
 end
 
@@ -398,5 +400,5 @@ shutdownConfirmMode:bind({}, "down", function()
 end)
 shutdownConfirmMode:bind({}, "return", function() executeConfirmSelection(confirmSelected) end)
 -- T / C は選択状態に関わらず直接実行できるショートカットとして維持する
-shutdownConfirmMode:bind({}, "t", function() confirmSelected=1; openTeamSpirit() end)
+shutdownConfirmMode:bind({}, "t", openTeamSpirit)
 shutdownConfirmMode:bind({}, "c", performShutdown)
