@@ -318,11 +318,100 @@ local function showMenu()
   powerMode:enter()
 end
 
--- 実際にシャットダウンを実行する
+-----------------------------------------------------------------------
+-- シャットダウン前に全アプリを閉じる処理
+-----------------------------------------------------------------------
+-- シャットダウン前にアプリをきちんと終了させておくことで、
+-- 次回起動時に前回開いていたウィンドウが復元されてしまう現象を
+-- 起きにくくするのが目的。
+
+-- 終了させたくない(閉じてはいけない)アプリ名の一覧。
+-- Finder やこのHammerspoon自身、システムのUIプロセスなどが対象。
+-- 将来、閉じたくないアプリが増えた場合はここに追記すればよい。
+local APPS_TO_KEEP_RUNNING = {
+  ["Finder"] = true,
+  ["Hammerspoon"] = true,
+  ["Dock"] = true,
+  ["SystemUIServer"] = true,
+  ["loginwindow"] = true,
+  ["WindowServer"] = true,
+  ["ControlCenter"] = true,
+  ["NotificationCenter"] = true,
+}
+
+-- そのアプリを「閉じる対象」にしてよいかどうかを判定する。
+-- kind()==1 は、Dockに表示されるような通常のアプリを指す。
+-- メニューバーだけの補助アプリやバックグラウンドプロセスは、
+-- 誤って終了させるとトラブルの元になるので対象から除外する。
+local function isQuittableApp(app)
+  local name = app:name()
+  if not name or APPS_TO_KEEP_RUNNING[name] then
+    return false
+  end
+  return app:kind() == 1
+end
+
+-- 実行中の通常アプリを、すべて正常終了(Cmd+Qと同じ)させる。
+-- app:kill() は「終了してください」というイベントを送るだけなので、
+-- 未保存の変更があれば、従来どおり保存確認ダイアログが表示される。
+local function quitAllApps()
+  for _, app in ipairs(hs.application.runningApplications()) do
+    if isQuittableApp(app) then
+      app:kill()
+    end
+  end
+end
+
+-- quitAllApps() のあと、アプリが実際に終了し終わるまで少し待ってから
+-- onDone() を実行する。
+-- 保存確認ダイアログの操作待ちなどで、いつまでも終了しないアプリが
+-- あった場合にシャットダウンできなくなるのを防ぐため、
+-- 待ち時間には上限(maxWaitSeconds)を設けている。
+local function waitForAppsToQuitThen(onDone)
+  local maxWaitSeconds = 15   -- これ以上は待たない上限(秒)
+  local checkInterval = 0.5   -- 何秒おきに確認するか
+  local waited = 0
+
+  local function check()
+    local stillRunning = false
+    for _, app in ipairs(hs.application.runningApplications()) do
+      if isQuittableApp(app) then
+        stillRunning = true
+        break
+      end
+    end
+
+    if not stillRunning or waited >= maxWaitSeconds then
+      onDone()
+    else
+      waited = waited + checkInterval
+      hs.timer.doAfter(checkInterval, check)
+    end
+  end
+
+  check()
+end
+
+-- ウィンドウ復元(前回開いていたウィンドウを勝手に開き直す動作)を無効化する。
+-- ログイン画面側の「ウィンドウを再度開く」設定だけでなく、
+-- アプリ自身が持っている「前回のウィンドウを覚えておく」機能
+-- (NSQuitAlwaysKeepsWindows)も合わせてオフにしておく。
+-- こうすることで、シャットダウンのたびに毎回この状態を保証できる。
+local function disableWindowRestore()
+  hs.execute("defaults write -g NSQuitAlwaysKeepsWindows -bool false")
+  hs.execute("defaults -currentHost write com.apple.loginwindow TALLogoutSavesState -bool false")
+end
+
+-- 全アプリを閉じてから、実際にシャットダウンを実行する
 local function performShutdown()
   hideShutdownConfirm()
   shutdownConfirmMode:exit()
-  hs.execute([[osascript -e 'tell application "System Events" to shut down']])
+
+  disableWindowRestore()
+  quitAllApps()
+  waitForAppsToQuitThen(function()
+    hs.execute([[osascript -e 'tell application "System Events" to shut down']])
+  end)
 end
 
 -- 既定ブラウザでTeamSpiritを開く（選択したら確認画面は閉じる）
