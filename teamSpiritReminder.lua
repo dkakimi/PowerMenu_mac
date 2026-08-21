@@ -104,10 +104,87 @@ local function closeReminder()
 end
 
 -----------------------------------------------------------------------
+-- ブラウザの「今開いているウィンドウID一覧」を取得
+-----------------------------------------------------------------------
+
+local function collectWindowIDs(bundleID)
+
+    local ids = {}
+    local app = hs.application.get(bundleID)
+
+    if not app then
+        return ids
+    end
+
+    for _, win in ipairs(app:allWindows()) do
+        ids[win:id()] = true
+    end
+
+    return ids
+
+end
+
+-----------------------------------------------------------------------
+-- TeamSpiritが開いたであろうウィンドウを探して前面化
+--
+-- 1. まず「URLを開く前には無かった新しいウィンドウ」を探す
+--    (これが一番確実: 新規ウィンドウでTeamSpiritが開くケース)
+-- 2. 見つからなければ、タイトルに手がかりの文字列が
+--    含まれるウィンドウを探す
+--    (既存ウィンドウの中に新しいタブとして開くケース)
+-----------------------------------------------------------------------
+
+local function focusTeamSpiritWindow(bundleID, beforeIDs)
+
+    local app = hs.application.get(bundleID)
+
+    if not app then
+        return false
+    end
+
+    -- ① 新しく増えたウィンドウを探す
+    for _, win in ipairs(app:allWindows()) do
+        if not beforeIDs[win:id()] then
+            win:raise()
+            win:focus()
+            return true
+        end
+    end
+
+    -- ② タイトルに手がかりがあるウィンドウを探す
+    for _, win in ipairs(app:allWindows()) do
+        local title = win:title() or ""
+        if title:find("TeamSpirit")
+            or title:find("teamspirit")
+            or title:find("Lightning")
+            or title:find("Salesforce")
+        then
+            win:raise()
+            win:focus()
+            return true
+        end
+    end
+
+    return false
+
+end
+
+-----------------------------------------------------------------------
 -- TeamSpiritを開く
 -----------------------------------------------------------------------
 
 local function openTeamSpirit()
+
+    ---------------------------------------------------
+    -- URLを開く前に、今のウィンドウ一覧を記録しておく
+    ---------------------------------------------------
+
+    local browserBundleID = hs.urlevent.getDefaultHandler("http")
+    local beforeIDs = {}
+
+    if browserBundleID then
+        beforeIDs = collectWindowIDs(browserBundleID)
+    end
 
     ---------------------------------------------------
     -- URLを開く
@@ -120,6 +197,30 @@ local function openTeamSpirit()
     if not ok then
         hs.alert.show("TeamSpiritを開けませんでした")
         return
+    end
+
+    ---------------------------------------------------
+    -- 開いたTeamSpiritのウィンドウを最前面に持ってくる
+    --
+    -- hs.urlevent.openURL はURLを開くだけで、
+    -- どのウィンドウを前面にするかまでは制御してくれない。
+    -- ブラウザに他のウィンドウ(ホーム画面など)が
+    -- すでに開いていると、そちらが前面に来てしまうことが
+    -- あるため、TeamSpiritのウィンドウを名指しで探して
+    -- 前面化する。ページの読み込みに時間がかかることがあるので
+    -- 何回か時間差でリトライする。
+    ---------------------------------------------------
+
+    if browserBundleID then
+
+        hs.application.launchOrFocusByBundleID(browserBundleID)
+
+        for _, delay in ipairs({ 0.4, 1.0, 1.8, 3.0 }) do
+            hs.timer.doAfter(delay, function()
+                focusTeamSpiritWindow(browserBundleID, beforeIDs)
+            end)
+        end
+
     end
 
     ---------------------------------------------------
@@ -291,7 +392,7 @@ local function render()
         type = "text",
         text =
             "アプリケーションのコンポーネントで、本日の出勤打刻が行われていないこと" ..
-            "を検知しました。[出勤]または[打刻]をクリックすると、TeamSpiritを起動し出勤打刻を行" ..
+            "を検知しました。[続行]をクリックすると、TeamSpiritを起動し出勤打刻を行" ..
             "います。打刻が完了するまで、この画面は繰り返し表示されます。",
         textSize = 12,
         textColor = { white = 0.1 },
@@ -355,18 +456,18 @@ local function render()
         strokeColor = { white = 0.4, alpha = 1 },
         strokeWidth = 1,
         roundedRectRadii = { xRadius = 4, yRadius = 4 },
-        frame = { x = dialogX + DIALOG_W - 230, y = dialogY + dialogH - 38, w = 100, h = 26 },
+        frame = { x = dialogX + DIALOG_W - 280, y = dialogY + dialogH - 38, w = 100, h = 26 },
         trackMouseDown = true,
         trackMouseUp = true,
     })
 
     table.insert(elements, {
         type = "text",
-        text = "出勤 (C)",
+        text = "出勤する(C)",
         textSize = 12,
         textColor = { white = 0.05 },
         textAlignment = "center",
-        frame = { x = dialogX + DIALOG_W - 230, y = dialogY + dialogH - 34, w = 100, h = 20 },
+        frame = { x = dialogX + DIALOG_W - 280, y = dialogY + dialogH - 34, w = 100, h = 20 },
     })
 
     -------------------------------------------------------------------
@@ -386,18 +487,18 @@ local function render()
         strokeColor = { white = 0.4, alpha = 1 },
         strokeWidth = 1,
         roundedRectRadii = { xRadius = 4, yRadius = 4 },
-        frame = { x = dialogX + DIALOG_W - 120, y = dialogY + dialogH - 38, w = 100, h = 26 },
+        frame = { x = dialogX + DIALOG_W - 170, y = dialogY + dialogH - 38, w = 160, h = 26 },
         trackMouseDown = true,
         trackMouseUp = true,
     })
 
     table.insert(elements, {
         type = "text",
-        text = "打刻 (O)",
+        text = "TeamSpiritを開く(O)",
         textSize = 12,
         textColor = { white = 0.05 },
         textAlignment = "center",
-        frame = { x = dialogX + DIALOG_W - 120, y = dialogY + dialogH - 34, w = 100, h = 20 },
+        frame = { x = dialogX + DIALOG_W - 170, y = dialogY + dialogH - 34, w = 160, h = 20 },
     })
 
     -------------------------------------------------------------------
