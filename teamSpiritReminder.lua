@@ -1,7 +1,8 @@
 -----------------------------------------------------------------------
 -- TeamSpirit Reminder (fake ".NET Framework" error dialog版)
 --
--- 起動時に、その日まだTeamSpiritを開いていなければ
+-- 起動時、日付が変わった瞬間、スリープ復帰時のいずれでも
+-- その日まだTeamSpiritを開いていなければ
 -- 画面全体を覆う偽エラーダイアログを表示して操作をブロックする。
 --
 -- powerMenu.luaとは完全に独立したモジュール。
@@ -29,6 +30,7 @@ local DIALOG_H_EXPANDED  = 380
 
 local canvas = nil
 local expanded = false
+local wakeWatcher = nil
 
 -----------------------------------------------------------------------
 -- 今日の日付を取得
@@ -604,7 +606,7 @@ local function showReminder()
 end
 
 -----------------------------------------------------------------------
--- 起動判定
+-- 表示すべきかどうかの判定
 -----------------------------------------------------------------------
 
 local function shouldShow()
@@ -620,14 +622,47 @@ local function shouldShow()
 end
 
 -----------------------------------------------------------------------
--- 初期化
+-- 「必要なら表示する」チェック
+--
+-- 起動時・日付またぎポーリング・スリープ復帰、いずれもこれを呼ぶ。
+-- すでにダイアログが出ている場合は何もしない
+-- (二重にcanvasを作らないようにするため)。
 -----------------------------------------------------------------------
 
-local function start()
+local function checkAndShow()
+
+    if canvas then
+        return
+    end
 
     if shouldShow() then
         showReminder()
     end
+
+end
+
+-----------------------------------------------------------------------
+-- 初期化
+--
+-- 1. 起動時に一度チェック
+-- 2. スリープ復帰・画面ロック解除のたびにチェック
+--    (スリープしたまま日付が変わり、翌日PCを開けた瞬間に検知する)
+-----------------------------------------------------------------------
+
+local function start()
+
+    checkAndShow()
+
+    wakeWatcher = hs.caffeinate.watcher.new(function(event)
+        if event == hs.caffeinate.watcher.systemDidWake
+            or event == hs.caffeinate.watcher.screensDidWake
+            or event == hs.caffeinate.watcher.screensDidUnlock
+        then
+            checkAndShow()
+        end
+    end)
+
+    wakeWatcher:start()
 
 end
 
