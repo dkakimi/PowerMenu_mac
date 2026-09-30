@@ -637,9 +637,21 @@ end
 
 local function checkAndShow()
 
+    -- canvas変数が残っていても、実際には画面上に無い(スリープ等で
+    -- 消えてしまった)ケースがあるため、isShowing()で実態を確認する。
+    -- 変数だけ残っていて実体が無い場合は、いったん綺麗にしてから
+    -- 判定し直す。
+    if canvas and not canvas:isShowing() then
+        print("[teamSpiritReminder] stale canvas detected, resetting")
+        closeReminder()
+    end
+
     if canvas then
         return
     end
+
+    print("[teamSpiritReminder] checkAndShow: " .. os.date("%Y-%m-%d %H:%M:%S")
+        .. " shouldShow=" .. tostring(shouldShow()))
 
     if shouldShow() then
         showReminder()
@@ -661,6 +673,10 @@ local function start()
     checkAndShow()
 
     wakeWatcher = hs.caffeinate.watcher.new(function(event)
+
+        print("[teamSpiritReminder] caffeinate event fired: " .. tostring(event)
+            .. " at " .. os.date("%Y-%m-%d %H:%M:%S"))
+
         if event == hs.caffeinate.watcher.systemDidWake
             or event == hs.caffeinate.watcher.screensDidWake
             or event == hs.caffeinate.watcher.screensDidUnlock
