@@ -107,6 +107,8 @@ local function closeReminder()
         canvas = nil
     end
 
+    M.canvas = nil
+
     expanded = false
 
 end
@@ -592,6 +594,8 @@ local function showReminder()
         h = frame.h,
     })
 
+    M.canvas = canvas
+
     canvas:mouseCallback(mouseCallback)
 
     render()
@@ -688,6 +692,19 @@ local function start()
     wakeWatcher:start()
 
     pollTimer = hs.timer.doEvery(POLL_INTERVAL_SEC, checkAndShow)
+
+    -------------------------------------------------------------------
+    -- 重要: wakeWatcher / pollTimer をモジュールのMテーブルに
+    -- 保持しておく。local変数のままだと、start()の実行が終わった
+    -- 時点でどこからも参照されなくなり、Luaのガベージコレクションで
+    -- 回収されてしまう(回収されると__gcでwatcherが自動stopしてしまい、
+    -- 「しばらくすると発火しなくなる」という症状になる)。
+    -- Mはrequireのキャッシュ(package.loaded)に残り続けるので、
+    -- ここにぶら下げておけばGCされない。
+    -------------------------------------------------------------------
+
+    M.wakeWatcher = wakeWatcher
+    M.pollTimer = pollTimer
 
 end
 
