@@ -29,6 +29,9 @@ local DIALOG_H_EXPANDED  = 380
 -- 保険として定期的にもチェックする。
 local POLL_INTERVAL_SEC = 60
 
+-- この時刻(時)より前はダイアログを表示しない
+local START_HOUR = 6
+
 -----------------------------------------------------------------------
 -- 内部変数
 -----------------------------------------------------------------------
@@ -620,6 +623,12 @@ end
 -----------------------------------------------------------------------
 
 local function shouldShow()
+
+    -- 早朝(START_HOUR時より前)は表示しない
+    -- (ポーリングで監視しているので、START_HOUR時を過ぎた時点で表示される)
+    if tonumber(os.date("%H")) < START_HOUR then
+        return false
+    end
 
     local saved = readSavedDate()
 
